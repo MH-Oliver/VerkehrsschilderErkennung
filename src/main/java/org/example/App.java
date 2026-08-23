@@ -23,7 +23,7 @@ public class App {
 
         // 3. Ein Testbild laden (Hier den Pfad zu einem echten Bild angeben!)
         // Lade dir am besten ein Bild von einem Stoppschild oder Vorfahrtsschild aus dem Internet herunter
-        String imagePath = "C:\\Uni\\Bildverarbeitung\\VerkehrsschilderErkennung\\src\\main\\resources\\testbild.jpg";
+        String imagePath = "C:\\Uni\\Bildverarbeitung\\VerkehrsschilderErkennung\\src\\main\\resources\\pictures\\vorfahrtAchten\\00430_jpg.rf.596d365481f10da537ead8ec4acafb02.jpg";
         Mat image = Imgcodecs.imread(imagePath);
 
         if (image.empty()) {
@@ -49,7 +49,7 @@ public class App {
 
         int rows = transposed.rows(); // ca. 8400
         int cols = transposed.cols(); // 47
-        float confidenceThreshold = 0.6f;
+        float confidenceThreshold = 0.2f;
 
         // Listen zum Sammeln der Ergebnisse VOR der Filterung
         java.util.List<org.opencv.core.Rect2d> boxesList = new java.util.ArrayList<>();
@@ -87,82 +87,69 @@ public class App {
             }
         }
 
-        // 7. Non-Maximum Suppression (NMS) anwenden
-        org.opencv.core.MatOfRect2d boxes = new org.opencv.core.MatOfRect2d();
-        boxes.fromList(boxesList);
+        // 7. Blob immer zurück in ein anzeigbares Bild verwandeln
+        java.util.List<Mat> unblobbed = new java.util.ArrayList<>();
+        Dnn.imagesFromBlob(blob, unblobbed);
+        Mat blobImage = new Mat();
+        unblobbed.get(0).convertTo(blobImage, org.opencv.core.CvType.CV_8UC3, 255.0);
+        Imgproc.cvtColor(blobImage, blobImage, Imgproc.COLOR_RGB2BGR);
 
-        org.opencv.core.MatOfFloat scores = new org.opencv.core.MatOfFloat();
-        scores.fromList(scoresList);
+        // 8. NMS und Zeichnen (Nur ausführen, wenn auch Boxen da sind)
+        if (!boxesList.isEmpty()) {
+            org.opencv.core.MatOfRect2d boxes = new org.opencv.core.MatOfRect2d();
+            boxes.fromList(boxesList);
 
-        org.opencv.core.MatOfInt indices = new org.opencv.core.MatOfInt();
+            org.opencv.core.MatOfFloat scores = new org.opencv.core.MatOfFloat();
+            scores.fromList(scoresList);
 
-        // NMS Threshold: Ab wie viel Prozent Überlappung sollen Boxen verschmolzen werden? (0.4 = 40%)
-        float nmsThreshold = 0.4f;
-        Dnn.NMSBoxes(boxes, scores, confidenceThreshold, nmsThreshold, indices);
+            org.opencv.core.MatOfInt indices = new org.opencv.core.MatOfInt();
+            float nmsThreshold = 0.45f;
+            Dnn.NMSBoxes(boxes, scores, confidenceThreshold, nmsThreshold, indices);
 
-        // 8. Finale Ausgabe und Visualisierung im GUI-Fenster
-        int[] indicesArray = indices.toArray();
-        if (indicesArray.length == 0) {
-            System.out.println("Kein Schild gefunden.");
-        } else {
-            double scaleX = (double) image.cols() / 640.0;
-            double scaleY = (double) image.rows() / 640.0;
+            if (!indices.empty() && indices.rows() > 0) {
+                int[] indicesArray = indices.toArray();
+                double scaleX = (double) image.cols() / 640.0;
+                double scaleY = (double) image.rows() / 640.0;
 
-            for (int idx : indicesArray) {
-                org.opencv.core.Rect2d box = boxesList.get(idx);
-                int classId = classIdsList.get(idx);
-                float score = scoresList.get(idx);
+                for (int idx : indicesArray) {
+                    org.opencv.core.Rect2d box = boxesList.get(idx);
+                    int classId = classIdsList.get(idx);
+                    float score = scoresList.get(idx);
 
-                String schildName = "";
-                if (classId == 7) schildName = "Vorfahrt Achten";
-                if (classId == 21) schildName = "Vorfahrt";
-                if (classId == 22) schildName = "Vorfahrtsstrasse";
-                if (classId == 40) schildName = "Stopp";
+                    String schildName = "";
+                    if (classId == 7) schildName = "Vorfahrt Achten";
+                    if (classId == 21) schildName = "Vorfahrt";
+                    if (classId == 22) schildName = "Vorfahrtsstrasse";
+                    if (classId == 40) schildName = "Stopp";
 
-                int x = (int) Math.round(box.x * scaleX);
-                int y = (int) Math.round(box.y * scaleY);
-                int w = (int) Math.round(box.width * scaleX);
-                int h = (int) Math.round(box.height * scaleY);
+                    int x = (int) Math.round(box.x * scaleX);
+                    int y = (int) Math.round(box.y * scaleY);
+                    int w = (int) Math.round(box.width * scaleX);
+                    int h = (int) Math.round(box.height * scaleY);
 
-                // Rahmen zeichnen (Grün)
-                org.opencv.core.Point pt1 = new org.opencv.core.Point(x, y);
-                org.opencv.core.Point pt2 = new org.opencv.core.Point(x + w, y + h);
-                Imgproc.rectangle(image, pt1, pt2, new org.opencv.core.Scalar(0, 255, 0), 3);
+                    // Text-Hintergrund und Position berechnen
+                    String label = String.format("%s (%.0f%%)", schildName, score * 100);
+                    int[] baseLine = new int[1];
+                    org.opencv.core.Size textSize = Imgproc.getTextSize(label, Imgproc.FONT_HERSHEY_SIMPLEX, 0.6, 2, baseLine);
+                    int textY = (y - 10 < textSize.height) ? y + (int)textSize.height + 10 : y - 10;
 
-                // Text vorbereiten
-                String label = String.format("%s (%.0f%%)", schildName, score * 100);
-
-                // Textgröße berechnen, um den Hintergrund exakt anzupassen
-                int[] baseLine = new int[1];
-                org.opencv.core.Size textSize = Imgproc.getTextSize(label, Imgproc.FONT_HERSHEY_SIMPLEX, 0.6, 2, baseLine);
-
-                // Logik: Wenn das Schild zu weit oben ist, setze den Text IN die Box statt darüber
-                int textY;
-                if (y - 10 < textSize.height) {
-                    textY = y + (int)textSize.height + 10; // In die Box verschieben
-                } else {
-                    textY = y - 10; // Normal über der Box
+                    // Zeichnen NUR noch auf dem Originalbild (image)
+                    Imgproc.rectangle(image, new org.opencv.core.Point(x, y), new org.opencv.core.Point(x + w, y + h), new org.opencv.core.Scalar(0, 255, 0), 3);
+                    Imgproc.rectangle(image, new org.opencv.core.Point(x, textY - textSize.height - 5), new org.opencv.core.Point(x + textSize.width, textY + baseLine[0]), new org.opencv.core.Scalar(0, 0, 0), Imgproc.FILLED);
+                    Imgproc.putText(image, label, new org.opencv.core.Point(x, textY), Imgproc.FONT_HERSHEY_SIMPLEX, 0.6, new org.opencv.core.Scalar(255, 255, 255), 2);
                 }
-
-                // Schwarzen Hintergrund für den Text zeichnen (damit er immer lesbar ist)
-                org.opencv.core.Point textBgPt1 = new org.opencv.core.Point(x, textY - textSize.height - 5);
-                org.opencv.core.Point textBgPt2 = new org.opencv.core.Point(x + textSize.width, textY + baseLine[0]);
-                Imgproc.rectangle(image, textBgPt1, textBgPt2, new org.opencv.core.Scalar(0, 0, 0), Imgproc.FILLED);
-
-                // Weißen Text darüber schreiben
-                org.opencv.core.Point textOrigin = new org.opencv.core.Point(x, textY);
-                Imgproc.putText(image, label, textOrigin, Imgproc.FONT_HERSHEY_SIMPLEX, 0.6, new org.opencv.core.Scalar(255, 255, 255), 2);
+            } else {
+                System.out.println("Kein Schild gefunden (durch NMS gefiltert).");
             }
-
-            // 9. Bild im OpenCV-Dialog anzeigen (Speichern entfernt)
-            HighGui.imshow("Verkehrsschild Analyse", image);
-
-            // Wartet, bis eine beliebige Taste gedrückt wird oder das Fenster geschlossen wird
-            HighGui.waitKey(0);
-
-            // Beendet das Programm sauber, nachdem das Fenster geschlossen wurde
-            System.exit(0);
+        } else {
+            System.out.println("Kein Schild gefunden (Score zu niedrig oder keines vorhanden).");
         }
+
+        // 9. Fenster in jedem Fall anzeigen
+        HighGui.imshow("Verkehrsschild Analyse - Original", image);
+        HighGui.imshow("Verkehrsschild Analyse - Vorverarbeitung (640x640)", blobImage);
+        HighGui.waitKey(0);
+        System.exit(0);
 
 
     }

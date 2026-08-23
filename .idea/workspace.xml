@@ -4,15 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c88f744d-345c-49d9-8c20-43e06851e6f4" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/org/example/App.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/org/example/AppTest.java" afterDir="false" />
+    <list default="true" id="c88f744d-345c-49d9-8c20-43e06851e6f4" name="Changes" comment="feature: Dialog öffnet sich">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/App.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/App.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/testbild.jpg" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,13 +21,16 @@
   &quot;associatedIndex&quot;: 3
 }</component>
   <component name="ProjectId" id="3IGf1xn6YRaacmLeylb1IP66gKh" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
     "Application.App.executor": "Run",
     "Maven. [org.apache.maven.plugins:maven-archetype-plugin:RELEASE:generate].executor": "Run",
     "Maven.VerkehrsschilderErkennung [clean,install].executor": "Run",
@@ -41,7 +39,7 @@
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "git-widget-placeholder": "master",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Uni/Bildverarbeitung/VerkehrsschilderErkennung/src/main/resources",
+    "last_opened_file_path": "C:/Uni/Bildverarbeitung/VerkehrsschilderErkennung/src/main/resources/pictures/vorfahrtAchten",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -50,6 +48,16 @@
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Uni\Bildverarbeitung\VerkehrsschilderErkennung\src\main\resources\pictures\vorfahrtAchten" />
+      <recent name="C:\Uni\Bildverarbeitung\VerkehrsschilderErkennung\src\main\resources\pictures\stopp" />
+      <recent name="C:\Uni\Bildverarbeitung\VerkehrsschilderErkennung\src\main\resources" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Uni\Bildverarbeitung\VerkehrsschilderErkennung\src\main\resources\pictures" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="App" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="org.example.App" />
@@ -82,11 +90,42 @@
       <workItem from="1787478358568" duration="625000" />
       <workItem from="1787479717751" duration="9000" />
       <workItem from="1787479740969" duration="24000" />
-      <workItem from="1787479768733" duration="311000" />
+      <workItem from="1787479768733" duration="4175000" />
     </task>
+    <task id="LOCAL-00001" summary="feature: Modell wurde erstmals eingebaut und kann Stoppschild erkennen">
+      <option name="closed" value="true" />
+      <created>1787480520835</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1787480520835</updated>
+    </task>
+    <task id="LOCAL-00002" summary="fix: Schild nur einmal erkannt">
+      <option name="closed" value="true" />
+      <created>1787480927839</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1787480927839</updated>
+    </task>
+    <task id="LOCAL-00003" summary="feature: Dialog öffnet sich">
+      <option name="closed" value="true" />
+      <created>1787481391536</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1787481391536</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="feature: Modell wurde erstmals eingebaut und kann Stoppschild erkennen" />
+    <MESSAGE value="fix: Schild nur einmal erkannt" />
+    <MESSAGE value="feature: Dialog öffnet sich" />
+    <option name="LAST_COMMIT_MESSAGE" value="feature: Dialog öffnet sich" />
   </component>
 </project>
