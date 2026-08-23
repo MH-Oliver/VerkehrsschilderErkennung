@@ -7,6 +7,8 @@ import org.opencv.core.Size;
 import org.opencv.dnn.Dnn;
 import org.opencv.dnn.Net;
 import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.highgui.HighGui;
 
 public class App {
     public static void main(String[] args) {
@@ -98,11 +100,14 @@ public class App {
         float nmsThreshold = 0.4f;
         Dnn.NMSBoxes(boxes, scores, confidenceThreshold, nmsThreshold, indices);
 
-        // 8. Finale Ausgabe der gefilterten Boxen
+        // 8. Finale Ausgabe und Visualisierung im GUI-Fenster
         int[] indicesArray = indices.toArray();
         if (indicesArray.length == 0) {
             System.out.println("Kein Schild gefunden.");
         } else {
+            double scaleX = (double) image.cols() / 640.0;
+            double scaleY = (double) image.rows() / 640.0;
+
             for (int idx : indicesArray) {
                 org.opencv.core.Rect2d box = boxesList.get(idx);
                 int classId = classIdsList.get(idx);
@@ -114,10 +119,49 @@ public class App {
                 if (classId == 22) schildName = "Vorfahrtsstrasse";
                 if (classId == 40) schildName = "Stopp";
 
-                System.out.println("\n--- SCHILD ERKANNT (Nach NMS Filterung) ---");
-                System.out.println("Typ: " + schildName + " (Score: " + score + ")");
-                System.out.println("Box: ObenLinks(" + box.x + ", " + box.y + "), Breite=" + box.width + ", Hoehe=" + box.height);
+                int x = (int) Math.round(box.x * scaleX);
+                int y = (int) Math.round(box.y * scaleY);
+                int w = (int) Math.round(box.width * scaleX);
+                int h = (int) Math.round(box.height * scaleY);
+
+                // Rahmen zeichnen (Grün)
+                org.opencv.core.Point pt1 = new org.opencv.core.Point(x, y);
+                org.opencv.core.Point pt2 = new org.opencv.core.Point(x + w, y + h);
+                Imgproc.rectangle(image, pt1, pt2, new org.opencv.core.Scalar(0, 255, 0), 3);
+
+                // Text vorbereiten
+                String label = String.format("%s (%.0f%%)", schildName, score * 100);
+
+                // Textgröße berechnen, um den Hintergrund exakt anzupassen
+                int[] baseLine = new int[1];
+                org.opencv.core.Size textSize = Imgproc.getTextSize(label, Imgproc.FONT_HERSHEY_SIMPLEX, 0.6, 2, baseLine);
+
+                // Logik: Wenn das Schild zu weit oben ist, setze den Text IN die Box statt darüber
+                int textY;
+                if (y - 10 < textSize.height) {
+                    textY = y + (int)textSize.height + 10; // In die Box verschieben
+                } else {
+                    textY = y - 10; // Normal über der Box
+                }
+
+                // Schwarzen Hintergrund für den Text zeichnen (damit er immer lesbar ist)
+                org.opencv.core.Point textBgPt1 = new org.opencv.core.Point(x, textY - textSize.height - 5);
+                org.opencv.core.Point textBgPt2 = new org.opencv.core.Point(x + textSize.width, textY + baseLine[0]);
+                Imgproc.rectangle(image, textBgPt1, textBgPt2, new org.opencv.core.Scalar(0, 0, 0), Imgproc.FILLED);
+
+                // Weißen Text darüber schreiben
+                org.opencv.core.Point textOrigin = new org.opencv.core.Point(x, textY);
+                Imgproc.putText(image, label, textOrigin, Imgproc.FONT_HERSHEY_SIMPLEX, 0.6, new org.opencv.core.Scalar(255, 255, 255), 2);
             }
+
+            // 9. Bild im OpenCV-Dialog anzeigen (Speichern entfernt)
+            HighGui.imshow("Verkehrsschild Analyse", image);
+
+            // Wartet, bis eine beliebige Taste gedrückt wird oder das Fenster geschlossen wird
+            HighGui.waitKey(0);
+
+            // Beendet das Programm sauber, nachdem das Fenster geschlossen wurde
+            System.exit(0);
         }
 
 
