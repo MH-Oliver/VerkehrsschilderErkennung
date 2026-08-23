@@ -8,8 +8,10 @@ import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
 import org.opencv.imgcodecs.Imgcodecs;
 import java.io.File;
+import java.nio.file.Files;
 import java.util.List;
 
 public class MainUI {
@@ -74,8 +76,26 @@ public class MainUI {
 
         File file = chooser.showOpenDialog(stage);
         if (file != null) {
-            currentImage = Imgcodecs.imread(file.getAbsolutePath());
-            updateDetection();
+            try {
+                // 1. Java liest die Datei als rohes Byte-Array ein (ignoriert Sonderzeichen-Probleme)
+                byte[] fileContent = Files.readAllBytes(file.toPath());
+
+                // 2. Wir packen die Bytes in einen OpenCV-Datencontainer
+                MatOfByte buffer = new MatOfByte(fileContent);
+
+                // 3. OpenCV dekodiert das Bild direkt aus dem Arbeitsspeicher
+                currentImage = Imgcodecs.imdecode(buffer, Imgcodecs.IMREAD_COLOR);
+
+                if (currentImage.empty()) {
+                    System.out.println("Fehler: Das Bild konnte nicht dekodiert werden.");
+                    return;
+                }
+
+                updateDetection();
+
+            } catch (Exception ex) {
+                System.out.println("Fehler beim Laden der Datei: " + ex.getMessage());
+            }
         }
     }
 
