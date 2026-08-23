@@ -1,12 +1,15 @@
 package modules;
 
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.*;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.opencv.core.Mat;
@@ -27,16 +30,54 @@ public class MainUI {
     private final Slider confSlider;
     private final Slider nmsSlider;
 
-    // --- NEU: Navigation State ---
     private List<File> currentDirFiles;
     private int currentFileIndex = -1;
 
     public MainUI(Stage stage) {
         this.stage = stage;
         this.detector = new SignDetector("src/main/resources/models/best.onnx");
+
         this.imageView = new ImageView();
         this.imageView.setPreserveRatio(true);
         this.imageView.setFitWidth(800);
+
+        // --- AKTUALISIERT: Zoom auf Mausposition mit Limit ---
+        this.imageView.setOnScroll((ScrollEvent event) -> {
+            double oldScale = imageView.getScaleX();
+            double zoomFactor = 1.1;
+
+            if (event.getDeltaY() < 0) {
+                zoomFactor = 1 / zoomFactor; // Rauszoomen
+            }
+
+            double newScale = oldScale * zoomFactor;
+
+            // Verhindern, dass man kleiner als die Originalgröße zoomt
+            if (newScale <= 1.0) {
+                imageView.setScaleX(1.0);
+                imageView.setScaleY(1.0);
+                imageView.setTranslateX(0);
+                imageView.setTranslateY(0);
+                event.consume();
+                return;
+            }
+
+            // Mathematik für den Zoom auf die exakte Mausposition
+            double f = (newScale / oldScale) - 1;
+
+            Bounds bounds = imageView.localToScene(imageView.getBoundsInLocal());
+            double dx = (event.getSceneX() - (bounds.getWidth() / 2 + bounds.getMinX()));
+            double dy = (event.getSceneY() - (bounds.getHeight() / 2 + bounds.getMinY()));
+
+            // Bild exakt gegen die Vergrößerung verschieben
+            imageView.setTranslateX(imageView.getTranslateX() - f * dx);
+            imageView.setTranslateY(imageView.getTranslateY() - f * dy);
+
+            imageView.setScaleX(newScale);
+            imageView.setScaleY(newScale);
+
+            event.consume();
+        });
 
         this.confSlider = new Slider(0, 1, 0.25);
         this.nmsSlider = new Slider(0, 1, 0.45);
@@ -45,6 +86,14 @@ public class MainUI {
     public void buildAndShow() {
         Button loadBtn = new Button("Bild laden");
         loadBtn.setOnAction(e -> openFileChooser());
+
+        Button resetZoomBtn = new Button("Zoom Reset");
+        resetZoomBtn.setOnAction(e -> {
+            imageView.setScaleX(1.0);
+            imageView.setScaleY(1.0);
+            imageView.setTranslateX(0);
+            imageView.setTranslateY(0);
+        });
 
         Label confValueLabel = new Label(String.format("%.2f", confSlider.getValue()));
         Label nmsValueLabel = new Label(String.format("%.2f", nmsSlider.getValue()));
@@ -60,19 +109,25 @@ public class MainUI {
 
         HBox confHeader = new HBox(10, new Label("Confidence:"), confValueLabel);
         HBox nmsHeader = new HBox(10, new Label("NMS Threshold:"), nmsValueLabel);
+        HBox buttonBox = new HBox(10, loadBtn, resetZoomBtn);
 
-        VBox controls = new VBox(15, loadBtn, confHeader, confSlider, nmsHeader, nmsSlider);
+        VBox controls = new VBox(15, buttonBox, confHeader, confSlider, nmsHeader, nmsSlider);
         controls.setPadding(new Insets(20));
-        controls.setPrefWidth(260);
+        controls.setPrefWidth(280);
+
+        // --- AKTUALISIERT: Clipping, damit das Bild nicht über das Menü lappt ---
+        Pane imageContainer = new Pane(imageView);
+        Rectangle clip = new Rectangle();
+        clip.widthProperty().bind(imageContainer.widthProperty());
+        clip.heightProperty().bind(imageContainer.heightProperty());
+        imageContainer.setClip(clip);
 
         BorderPane root = new BorderPane();
         root.setLeft(controls);
-        root.setCenter(imageView);
+        root.setCenter(imageContainer);
 
         Scene scene = new Scene(root, 1100, 700);
-
-        // --- NEU: Globale Tastatur-Überwachung ---
-        scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> handleKeyPress(e));
+        scene.addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPress);
 
         stage.setTitle("Verkehrsschild Analyse Tool");
         stage.setScene(scene);
@@ -85,7 +140,7 @@ public class MainUI {
         if (e.getCode() == KeyCode.UP || e.getCode() == KeyCode.LEFT) {
             currentFileIndex = (currentFileIndex - 1 >= 0) ? currentFileIndex - 1 : currentDirFiles.size() - 1;
             loadFileAsBytes(currentDirFiles.get(currentFileIndex));
-            e.consume(); // Verhindert, dass Slider auf die Tasten reagieren
+            e.consume();
         } else if (e.getCode() == KeyCode.DOWN || e.getCode() == KeyCode.RIGHT) {
             currentFileIndex = (currentFileIndex + 1 < currentDirFiles.size()) ? currentFileIndex + 1 : 0;
             loadFileAsBytes(currentDirFiles.get(currentFileIndex));
@@ -110,7 +165,6 @@ public class MainUI {
         if (dir != null && dir.isDirectory()) {
             File[] files = dir.listFiles();
             if (files != null) {
-                // Nur Bilder in die Liste aufnehmen und sortieren
                 currentDirFiles = Arrays.stream(files)
                         .filter(f -> f.getName().toLowerCase().matches(".*\\.(png|jpg|jpeg)"))
                         .sorted()
@@ -127,6 +181,11 @@ public class MainUI {
             currentImage = Imgcodecs.imdecode(buffer, Imgcodecs.IMREAD_COLOR);
 
             if (!currentImage.empty()) {
+                // Zoom & Translation bei jedem neuen Bild sicherheitshalber zurücksetzen
+                imageView.setScaleX(1.0);
+                imageView.setScaleY(1.0);
+                imageView.setTranslateX(0);
+                imageView.setTranslateY(0);
                 updateDetection();
             }
         } catch (Exception ex) {
