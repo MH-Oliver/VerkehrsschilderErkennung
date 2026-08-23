@@ -75,7 +75,7 @@ public class SignDetector {
 
                 String name = "";
                 if (classId == 7) name = "Vorfahrt Achten";
-                if (classId == 21) name = "Vorfahrt";
+                if (classId == 21) name = "Vorfahrt naechste Kreuzung";
                 if (classId == 22) name = "Vorfahrtsstrasse";
                 if (classId == 40) name = "Stopp";
 

@@ -35,7 +35,7 @@ public class MainUI {
 
     public MainUI(Stage stage) {
         this.stage = stage;
-        this.detector = new SignDetector("src/main/resources/models/best.onnx");
+        this.detector = new SignDetector("src/main/resources/models/best_02.onnx");
 
         this.imageView = new ImageView();
         this.imageView.setPreserveRatio(true);
