@@ -38,20 +38,21 @@ public class App {
         Mat output = net.forward();
 
         // 6. Post-Processing (Auswertung)
-        // Matrix umformen: Aus 3D machen wir eine 2D-Tabelle (8400 Zeilen, 47 Spalten)
         Mat predictions = output.reshape(1, 47);
         Mat transposed = new Mat();
         org.opencv.core.Core.transpose(predictions, transposed);
 
-        // Alle Daten effizient in ein Java-Float-Array laden
         float[] data = new float[(int) transposed.total()];
         transposed.get(0, 0, data);
 
         int rows = transposed.rows(); // ca. 8400
         int cols = transposed.cols(); // 47
-        float confidenceThreshold = 0.6f; // Mindestens 60% Sicherheit
+        float confidenceThreshold = 0.6f;
 
-        System.out.println("Durchsuche " + rows + " mögliche Boxen...");
+        // Listen zum Sammeln der Ergebnisse VOR der Filterung
+        java.util.List<org.opencv.core.Rect2d> boxesList = new java.util.ArrayList<>();
+        java.util.List<Float> scoresList = new java.util.ArrayList<>();
+        java.util.List<Integer> classIdsList = new java.util.ArrayList<>();
 
         for (int i = 0; i < rows; i++) {
             int index = i * cols;
@@ -59,33 +60,66 @@ public class App {
             float maxClassScore = 0;
             int classId = -1;
 
-            // Finde die Klasse mit dem höchsten Score (Werte starten ab Index 4)
             for (int c = 4; c < cols; c++) {
                 if (data[index + c] > maxClassScore) {
                     maxClassScore = data[index + c];
-                    classId = c - 4; // -4, da die ersten 4 Werte die Koordinaten sind
+                    classId = c - 4;
                 }
             }
 
-            // Wenn das Netz sicher ist und es eines unserer 4 Schilder ist
             if (maxClassScore > confidenceThreshold) {
                 if (classId == 7 || classId == 21 || classId == 22 || classId == 40) {
-                    float x = data[index];
-                    float y = data[index + 1];
+                    float x_center = data[index];
+                    float y_center = data[index + 1];
                     float w = data[index + 2];
                     float h = data[index + 3];
 
-                    String schildName = "";
-                    if (classId == 7) schildName = "Vorfahrt Achten";
-                    if (classId == 21) schildName = "Vorfahrt";
-                    if (classId == 22) schildName = "Vorfahrtsstrasse";
-                    if (classId == 40) schildName = "Stopp";
+                    // Umrechnung von Mitte auf Obere-Linke-Ecke für OpenCV
+                    double left = x_center - (w / 2.0);
+                    double top = y_center - (h / 2.0);
 
-                    System.out.println("\n--- SCHILD ERKANNT ---");
-                    System.out.println("Typ: " + schildName + " (Score: " + maxClassScore + ")");
-                    System.out.println("Box: Mitte(" + x + ", " + y + "), Breite=" + w + ", Hoehe=" + h);
+                    boxesList.add(new org.opencv.core.Rect2d(left, top, w, h));
+                    scoresList.add(maxClassScore);
+                    classIdsList.add(classId);
                 }
             }
         }
+
+        // 7. Non-Maximum Suppression (NMS) anwenden
+        org.opencv.core.MatOfRect2d boxes = new org.opencv.core.MatOfRect2d();
+        boxes.fromList(boxesList);
+
+        org.opencv.core.MatOfFloat scores = new org.opencv.core.MatOfFloat();
+        scores.fromList(scoresList);
+
+        org.opencv.core.MatOfInt indices = new org.opencv.core.MatOfInt();
+
+        // NMS Threshold: Ab wie viel Prozent Überlappung sollen Boxen verschmolzen werden? (0.4 = 40%)
+        float nmsThreshold = 0.4f;
+        Dnn.NMSBoxes(boxes, scores, confidenceThreshold, nmsThreshold, indices);
+
+        // 8. Finale Ausgabe der gefilterten Boxen
+        int[] indicesArray = indices.toArray();
+        if (indicesArray.length == 0) {
+            System.out.println("Kein Schild gefunden.");
+        } else {
+            for (int idx : indicesArray) {
+                org.opencv.core.Rect2d box = boxesList.get(idx);
+                int classId = classIdsList.get(idx);
+                float score = scoresList.get(idx);
+
+                String schildName = "";
+                if (classId == 7) schildName = "Vorfahrt Achten";
+                if (classId == 21) schildName = "Vorfahrt";
+                if (classId == 22) schildName = "Vorfahrtsstrasse";
+                if (classId == 40) schildName = "Stopp";
+
+                System.out.println("\n--- SCHILD ERKANNT (Nach NMS Filterung) ---");
+                System.out.println("Typ: " + schildName + " (Score: " + score + ")");
+                System.out.println("Box: ObenLinks(" + box.x + ", " + box.y + "), Breite=" + box.width + ", Hoehe=" + box.height);
+            }
+        }
+
+
     }
 }
