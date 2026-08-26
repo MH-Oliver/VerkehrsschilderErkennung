@@ -40,6 +40,7 @@ public class MainUI {
         this.imageView = new ImageView();
         this.imageView.setPreserveRatio(true);
         this.imageView.setFitWidth(800);
+        this.imageView.setFitHeight(600);
 
         // --- AKTUALISIERT: Zoom auf Mausposition mit Limit ---
         this.imageView.setOnScroll((ScrollEvent event) -> {

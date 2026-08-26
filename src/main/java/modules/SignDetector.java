@@ -3,6 +3,8 @@ package modules;
 import org.opencv.core.*;
 import org.opencv.dnn.Dnn;
 import org.opencv.dnn.Net;
+import org.opencv.imgproc.Imgproc;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,7 +18,25 @@ public class SignDetector {
     public List<DetectionResult> detect(Mat image, float confThreshold, float nmsThreshold) {
         List<DetectionResult> finalResults = new ArrayList<>();
 
-        Mat blob = Dnn.blobFromImage(image, 1.0 / 255.0, new Size(640, 640), new Scalar(0), true, false);
+        // 1. Pre-Processing: Letterboxing (Proportionen erhalten)
+        double scale = Math.min(640.0 / image.cols(), 640.0 / image.rows());
+        int newW = (int) Math.round(image.cols() * scale);
+        int newH = (int) Math.round(image.rows() * scale);
+
+        Mat resized = new Mat();
+        Imgproc.resize(image, resized, new Size(newW, newH));
+
+        // Grauen 640x640 Hintergrund erstellen (YOLO Standardfarbe 114)
+        Mat letterbox = new Mat(new Size(640, 640), image.type(), new Scalar(114, 114, 114));
+        int left = (640 - newW) / 2;
+        int top = (640 - newH) / 2;
+
+        // Skaliertes Bild in die Mitte kopieren
+        Mat roi = letterbox.submat(top, top + newH, left, left + newW);
+        resized.copyTo(roi);
+
+        // 2. Inferenz
+        Mat blob = Dnn.blobFromImage(letterbox, 1.0 / 255.0, new Size(640, 640), new Scalar(0), true, false);
         net.setInput(blob);
         Mat output = net.forward();
 
@@ -47,9 +67,22 @@ public class SignDetector {
             }
 
             if (maxScore > confThreshold && (classId == 7 || classId == 21 || classId == 22 || classId == 40)) {
-                double left = data[index] - (data[index + 2] / 2.0);
-                double top = data[index + 1] - (data[index + 3] / 2.0);
-                boxesList.add(new Rect2d(left, top, data[index + 2], data[index + 3]));
+                // Koordinaten auf dem 640x640 Letterbox-Bild
+                double xCenter = data[index];
+                double yCenter = data[index + 1];
+                double boxW = data[index + 2];
+                double boxH = data[index + 3];
+
+                // 3. Post-Processing: Geometrie zurück auf das Originalbild rechnen
+                double origXCenter = (xCenter - left) / scale;
+                double origYCenter = (yCenter - top) / scale;
+                double origW = boxW / scale;
+                double origH = boxH / scale;
+
+                double origLeft = origXCenter - (origW / 2.0);
+                double origTop = origYCenter - (origH / 2.0);
+
+                boxesList.add(new Rect2d(origLeft, origTop, origW, origH));
                 scoresList.add(maxScore);
                 classIdsList.add(classId);
             }
@@ -66,9 +99,6 @@ public class SignDetector {
         Dnn.NMSBoxes(boxes, scores, confThreshold, nmsThreshold, indices);
 
         if (!indices.empty() && indices.rows() > 0) {
-            double scaleX = (double) image.cols() / 640.0;
-            double scaleY = (double) image.rows() / 640.0;
-
             for (int idx : indices.toArray()) {
                 Rect2d box = boxesList.get(idx);
                 int classId = classIdsList.get(idx);
@@ -79,8 +109,7 @@ public class SignDetector {
                 if (classId == 22) name = "Vorfahrtsstrasse";
                 if (classId == 40) name = "Stopp";
 
-                Rect2d scaledBox = new Rect2d(box.x * scaleX, box.y * scaleY, box.width * scaleX, box.height * scaleY);
-                finalResults.add(new DetectionResult(scaledBox, name, scoresList.get(idx)));
+                finalResults.add(new DetectionResult(box, name, scoresList.get(idx)));
             }
         }
         return finalResults;
