@@ -1,5 +1,6 @@
 package modules;
 
+import modules.models.DetectionResult;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;

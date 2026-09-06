@@ -1,4 +1,4 @@
-package modules;
+package modules.models;
 
 import org.opencv.core.Rect2d;
 

@@ -12,6 +12,8 @@ import javafx.scene.layout.*;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import modules.models.DetectionResult;
+import modules.pipeline.ObjectDetector;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -24,7 +26,7 @@ import java.util.stream.Collectors;
 
 public class MainUI {
     private final Stage stage;
-    private final SignDetector detector;
+    private final ObjectDetector detector;
     private Mat currentImage;
     private final ImageView imageView;
     private final Slider confSlider;
@@ -35,7 +37,7 @@ public class MainUI {
 
     public MainUI(Stage stage) {
         this.stage = stage;
-        this.detector = new SignDetector("src/main/resources/models/best_02.onnx");
+        this.detector = new ObjectDetector("src/main/resources/models/best_02.onnx");
 
         this.imageView = new ImageView();
         this.imageView.setPreserveRatio(true);
