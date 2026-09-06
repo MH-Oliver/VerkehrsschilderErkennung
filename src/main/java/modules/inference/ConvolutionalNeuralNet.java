@@ -9,6 +9,10 @@ import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Führt die eigentliche Objekterkennung mithilfe eines YOLO-basierten
+ * Deep Convolutional Neural Networks durch.
+ */
 public class ConvolutionalNeuralNet {
     private final Net net;
 
@@ -24,6 +28,17 @@ public class ConvolutionalNeuralNet {
         return allDetections;
     }
 
+    /**
+     * Führt die YOLO-Vorhersage für eine spezifische Bildregion durch.
+     * <p>
+     * Schritte:<p>
+     * 1. Schneidet die Region aus dem Originalbild aus.<p>
+     * 2. Berechnet den finalen Skalierungsfaktor und verkleinert den Ausschnitt.<p>
+     * 3. Erstellt eine quadratische 640x640 "Letterbox" mit grauem Rand (YOLO-Format).<p>
+     * 4. Wandelt das Bild in einen Blob um und führt den Forward-Pass (Inferenz) aus.<p>
+     * 5. Durchläuft den Netz-Output und filtert Vorhersagen über dem Threshold.<p>
+     * 6. Rechnet die Koordinaten aus dem 640x640-Raster zurück in Originalbild-Koordinaten.
+     */
     private void processRegion(Mat fullImage, ScaleRegion region, float confThreshold, List<RawDetection> detections) {
         Rect cropRegion = region.rect;
         Mat cropped = new Mat(fullImage, cropRegion);

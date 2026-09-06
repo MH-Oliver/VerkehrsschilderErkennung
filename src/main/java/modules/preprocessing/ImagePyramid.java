@@ -5,7 +5,22 @@ import org.opencv.core.Rect;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Generiert eine mehrskalige Signaldarstellung (Bildpyramide) für die Objekterkennung.
+ */
 public class ImagePyramid {
+
+    /**
+     * Erstellt eine Liste von Bildregionen für die Multi-Scale-Analyse.<p>
+     * Schritte:<p>
+     * 1. Fügt das Gesamtbild (1.0x Zoom) hinzu.<p>
+     * 2. Fügt ein künstlich herausgezoomtes Bild (0.4x Zoom) für sehr große Objekte hinzu.<p>
+     * 3. Unterteilt das Bild in vier überlappende Quadranten für winzige Objekte.
+     *
+     * @param w Breite des Originalbildes
+     * @param h Höhe des Originalbildes
+     * @return Liste der zu analysierenden Regionen
+     */
     public List<ScaleRegion> generateRegions(int w, int h) {
         List<ScaleRegion> regions = new ArrayList<>();
         int overlap = 150;
@@ -15,7 +30,7 @@ public class ImagePyramid {
         // DURCHLAUF 2: Künstlich Rauszoomen (Zoom 0.4)
         regions.add(new ScaleRegion(new Rect(0, 0, w, h), 0.4));
 
-        // DURCHLAUF 3-6: SAHI Quadranten (Zoom-In für winzige Schilder)
+        // DURCHLAUF 3-6: 4 Quadranten (Zoom-In für winzige Schilder)
         int halfW = w / 2;
         int halfH = h / 2;
         regions.add(new ScaleRegion(createSafeRect(0, 0, halfW + overlap, halfH + overlap, w, h), 1.0));

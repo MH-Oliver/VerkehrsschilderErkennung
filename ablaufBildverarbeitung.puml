@@ -1,0 +1,33 @@
+@startuml
+skinparam defaultTextAlignment center
+skinparam ActivityBorderColor black
+skinparam groupBorderColor gray
+
+start
+#LightGreen:Eingabebild (Originalgröße);
+
+group 1. Vorverarbeitung (Bildpyramide)
+  #LightBlue:Generiere Suchregionen\n(Ganzes Bild, verkleinert, 4 Teil-Quadranten);
+end group
+
+group 2. Neuronales Netz (YOLO / CNN)
+  repeat :Nimm die nächste Suchregion;
+    #LightBlue:Zuschneiden & proportional skalieren;
+    #LightBlue:Letterboxing\n(Bild auf 640x640 mit grauem Rand auffüllen);
+    #FFCCCC:Deep Learning Objekterkennung\n(Das Netz sucht nach Mustern);
+    #LightBlue:Schwache Treffer ignorieren\n(Threshold-Filterung);
+    #LightBlue:Koordinaten auf das\nOriginalbild zurückrechnen;
+  repeat while (Weitere Regionen vorhanden?) is (Ja)
+  ->Nein;
+end group
+
+group 3. Bereinigung (Post-Processing)
+  #FFFACD:Alle rohen Treffer in einer Liste sammeln;
+  #FFFACD:Non-Maximum Suppression (NMS)\n(Löscht überlappende, schwächere Rahmen);
+  #FFFACD:Box-Merging\n(Verschmilzt Rahmen, die ineinander liegen);
+  #FFFACD:Erkannten Klassen einen Namen geben\n(z.B. "Stopp", "Vorfahrt");
+end group
+
+#LightGreen:Klassifizierte Regionen\nmit Verkehrsschildern;
+stop
+@enduml

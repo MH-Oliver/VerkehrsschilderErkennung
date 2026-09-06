@@ -10,8 +10,27 @@ import org.opencv.dnn.Dnn;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Führt das Post-Processing der Detektionen durch, um redundante und
+ * überlappende Vorhersagen desselben Objekts zu entfernen.
+ */
 public class NonMaxSuppression {
 
+    /**
+     * Filtert die rohen Detektionen über NMS und ein eigenes Box-Merging.
+     * <p>
+     * Schritte:
+     * 1. Führt die Standard-OpenCV Non-Maximum Suppression (NMS) aus.
+     * 2. Sortiert die verbliebenen Boxen absteigend nach ihrem Score (Konfidenz).
+     * 3. Durchläuft die Boxen paarweise und prüft auf starke Überlappung (Box-in-Box / IoM).
+     * 4. Verschmilzt überlappende Boxen derselben Klasse zu einer gemeinsamen Bounding Box.
+     * 5. Übersetzt die numerischen Klassen-IDs in lesbare Text-Labels.
+     *
+     * @param rawDetections Liste der Vorhersagen aus dem CNN
+     * @param confThreshold Konfidenz-Schwellwert
+     * @param nmsThreshold Schwellwert für die NMS-Überlappung
+     * @return Bereinigte Liste der finalen Detektionen
+     */
     public List<DetectionResult> filter(List<RawDetection> rawDetections, float confThreshold, float nmsThreshold) {
         List<DetectionResult> finalResults = new ArrayList<>();
         if (rawDetections.isEmpty()) return finalResults;

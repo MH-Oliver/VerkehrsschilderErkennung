@@ -1,6 +1,9 @@
 package modules.models;
 import org.opencv.core.Rect2d;
 
+/**
+ * Temporäre Datenstruktur für eine rohe Netzwerk-Vorhersage vor dem Post-Processing.
+ */
 public class RawDetection {
     public final Rect2d box;
     public final float score;
