@@ -22,7 +22,7 @@ public class NonMaxSuppression {
      * Schritte:
      * 1. Führt die Standard-OpenCV Non-Maximum Suppression (NMS) aus.
      * 2. Sortiert die verbliebenen Boxen absteigend nach ihrem Score (Konfidenz).
-     * 3. Durchläuft die Boxen paarweise und prüft auf starke Überlappung (Box-in-Box / IoM).
+     * 3. Durchläuft die Boxen paarweise und prüft auf starke Überlappung (Box-in-Box).
      * 4. Verschmilzt überlappende Boxen derselben Klasse zu einer gemeinsamen Bounding Box.
      * 5. Übersetzt die numerischen Klassen-IDs in lesbare Text-Labels.
      *
@@ -42,6 +42,7 @@ public class NonMaxSuppression {
             allScores.add(d.score);
         }
 
+        // --- 1: Führt die Standard-OpenCV Non-Maximum Suppression (NMS) aus ---
         MatOfRect2d boxesMat = new MatOfRect2d();
         boxesMat.fromList(allBoxes);
         MatOfFloat scoresMat = new MatOfFloat();
@@ -57,9 +58,11 @@ public class NonMaxSuppression {
             }
         }
 
+        // --- 2: Sortiert die verbliebenen Boxen absteigend nach ihrem Score (Konfidenz) ---
         validIndices.sort((idx1, idx2) -> Float.compare(allScores.get(idx2), allScores.get(idx1)));
         boolean[] merged = new boolean[validIndices.size()];
 
+        // --- 3: Durchläuft die Boxen paarweise und prüft auf starke Überlappung (Box-in-Box) ---
         for (int i = 0; i < validIndices.size(); i++) {
             if (merged[i]) continue;
             int idx1 = validIndices.get(i);
@@ -86,6 +89,8 @@ public class NonMaxSuppression {
                     double area2 = compare.box.width * compare.box.height;
 
                     if (interArea / Math.min(area1, area2) > 0.5) {
+
+                        // --- 4: Verschmilzt überlappende Boxen derselben Klasse zu einer gemeinsamen Bounding Box ---
                         finalLeft = Math.min(finalLeft, compare.box.x);
                         finalTop = Math.min(finalTop, compare.box.y);
                         finalRight = Math.max(finalRight, compare.box.x + compare.box.width);
@@ -95,6 +100,8 @@ public class NonMaxSuppression {
                 }
             }
             Rect2d finalBox = new Rect2d(finalLeft, finalTop, finalRight - finalLeft, finalBottom - finalTop);
+
+            // --- 5: Übersetzt die numerischen Klassen-IDs in lesbare Text-Labels (via getClassName) ---
             finalResults.add(new DetectionResult(finalBox, getClassName(base.classId), base.score));
         }
         return finalResults;

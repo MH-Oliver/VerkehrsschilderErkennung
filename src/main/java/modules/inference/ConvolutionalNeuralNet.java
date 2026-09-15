@@ -40,24 +40,31 @@ public class ConvolutionalNeuralNet {
      * 6. Rechnet die Koordinaten aus dem 640x640-Raster zurück in Originalbild-Koordinaten.
      */
     private void processRegion(Mat fullImage, ScaleRegion region, float confThreshold, List<RawDetection> detections) {
+
+        // --- 1: Schneidet die Region aus dem Originalbild aus ---
         Rect cropRegion = region.rect;
         Mat cropped = new Mat(fullImage, cropRegion);
 
+        // --- 2: Berechnet den finalen Skalierungsfaktor und verkleinert den Ausschnitt ---
         double scale = Math.min(640.0 / cropped.cols(), 640.0 / cropped.rows()) * region.zoomFactor;
         int newW = (int) Math.round(cropped.cols() * scale);
         int newH = (int) Math.round(cropped.rows() * scale);
 
         Mat resized = new Mat();
         Imgproc.resize(cropped, resized, new Size(newW, newH));
+
+        // --- 3: Erstellt eine quadratische 640x640 "Letterbox" mit grauem Rand (YOLO-Format) ---
         Mat letterbox = new Mat(new Size(640, 640), cropped.type(), new Scalar(114, 114, 114));
         int left = (640 - newW) / 2;
         int top = (640 - newH) / 2;
         Mat roi = letterbox.submat(top, top + newH, left, left + newW);
         resized.copyTo(roi);
 
+        // --- 4: Wandelt das Bild in einen Blob um und führt den Forward-Pass (Inferenz) aus ---
         Mat blob = Dnn.blobFromImage(letterbox, 1.0 / 255.0, new Size(640, 640), new Scalar(0), true, false);
         net.setInput(blob);
         Mat output = net.forward();
+
         Mat predictions = output.reshape(1, 47);
         Mat transposed = new Mat();
         Core.transpose(predictions, transposed);
@@ -67,6 +74,8 @@ public class ConvolutionalNeuralNet {
 
         int rows = transposed.rows();
         int cols = transposed.cols();
+
+        // --- 5: Durchläuft den Netz-Output und filtert Vorhersagen über dem Threshold ---
         for (int i = 0; i < rows; i++) {
             int index = i * cols;
             float maxScore = 0;
@@ -78,6 +87,8 @@ public class ConvolutionalNeuralNet {
                 }
             }
             if (maxScore > confThreshold && (classId == 7 || classId == 21 || classId == 22 || classId == 40)) {
+
+                // --- SCHRITT 6: Rechnet die Koordinaten aus dem 640x640-Raster zurück in Originalbild-Koordinaten ---
                 double cropXCenter = (data[index] - left) / scale;
                 double cropYCenter = (data[index + 1] - top) / scale;
                 double cropBoxW = data[index + 2] / scale;
